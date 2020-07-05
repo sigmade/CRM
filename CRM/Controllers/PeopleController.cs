@@ -10,46 +10,23 @@ using CRM.Models;
 
 namespace CRM.Controllers
 {
-    public class CompaniesController : Controller
+    public class PeopleController : Controller
     {
         private readonly ApplicationDbContext _context;
 
-        public CompaniesController(ApplicationDbContext context)
+        public PeopleController(ApplicationDbContext context)
         {
             _context = context;
         }
 
-        // GET: Companies
-        //public async Task<IActionResult> Index()
-        //{
-        //    return View(await _context.Company.ToListAsync());
-        //}
-
-        public async Task<IActionResult> Index(string sortOrder)
+        // GET: People
+        public async Task<IActionResult> Index()
         {
-            ViewData["NameSortParm"] = String.IsNullOrEmpty(sortOrder) ? "name_desc" : "";
-            ViewData["DateSortParm"] = sortOrder == "Date" ? "date_desc" : "Date";
-            var companies = from s in _context.Company
-                           select s;
-            switch (sortOrder)
-            {
-                case "name_desc":
-                    companies = companies.OrderByDescending(s => s.Name);
-                    break;
-                case "Date":
-                    companies = companies.OrderBy(s => s.EnrollmentDate);
-                    break;
-                case "date_desc":
-                    companies = companies.OrderByDescending(s => s.EnrollmentDate);
-                    break;
-                default:
-                    companies = companies.OrderBy(s => s.Name);
-                    break;
-            }
-            return View(await companies.AsNoTracking().ToListAsync());
+            var applicationDbContext = _context.People.Include(p => p.Company);
+            return View(await applicationDbContext.ToListAsync());
         }
 
-        // GET: Companies/Details/5
+        // GET: People/Details/5
         public async Task<IActionResult> Details(int? id)
         {
             if (id == null)
@@ -57,39 +34,42 @@ namespace CRM.Controllers
                 return NotFound();
             }
 
-            var company = await _context.Company
+            var person = await _context.People
+                .Include(p => p.Company)
                 .FirstOrDefaultAsync(m => m.Id == id);
-            if (company == null)
+            if (person == null)
             {
                 return NotFound();
             }
 
-            return View(company);
+            return View(person);
         }
 
-        // GET: Companies/Create
+        // GET: People/Create
         public IActionResult Create()
         {
+            ViewData["CompanyId"] = new SelectList(_context.Company, "Id", "Id");
             return View();
         }
 
-        // POST: Companies/Create
+        // POST: People/Create
         // To protect from overposting attacks, please enable the specific properties you want to bind to, for 
         // more details see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,Name,Phone,Email,Address,EnrollmentDate")] Company company)
+        public async Task<IActionResult> Create([Bind("Id,Name,Position,Phone,Email,Address,EnrollmentDate,CompanyId")] Person person)
         {
             if (ModelState.IsValid)
             {
-                _context.Add(company);
+                _context.Add(person);
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
-            return View(company);
+            ViewData["CompanyId"] = new SelectList(_context.Company, "Id", "Id", person.CompanyId);
+            return View(person);
         }
 
-        // GET: Companies/Edit/5
+        // GET: People/Edit/5
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null)
@@ -97,22 +77,23 @@ namespace CRM.Controllers
                 return NotFound();
             }
 
-            var company = await _context.Company.FindAsync(id);
-            if (company == null)
+            var person = await _context.People.FindAsync(id);
+            if (person == null)
             {
                 return NotFound();
             }
-            return View(company);
+            ViewData["CompanyId"] = new SelectList(_context.Company, "Id", "Id", person.CompanyId);
+            return View(person);
         }
 
-        // POST: Companies/Edit/5
+        // POST: People/Edit/5
         // To protect from overposting attacks, please enable the specific properties you want to bind to, for 
         // more details see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,Name,Phone,Email,Address,EnrollmentDate")] Company company)
+        public async Task<IActionResult> Edit(int id, [Bind("Id,Name,Position,Phone,Email,Address,EnrollmentDate,CompanyId")] Person person)
         {
-            if (id != company.Id)
+            if (id != person.Id)
             {
                 return NotFound();
             }
@@ -121,12 +102,12 @@ namespace CRM.Controllers
             {
                 try
                 {
-                    _context.Update(company);
+                    _context.Update(person);
                     await _context.SaveChangesAsync();
                 }
                 catch (DbUpdateConcurrencyException)
                 {
-                    if (!CompanyExists(company.Id))
+                    if (!PersonExists(person.Id))
                     {
                         return NotFound();
                     }
@@ -137,10 +118,11 @@ namespace CRM.Controllers
                 }
                 return RedirectToAction(nameof(Index));
             }
-            return View(company);
+            ViewData["CompanyId"] = new SelectList(_context.Company, "Id", "Id", person.CompanyId);
+            return View(person);
         }
 
-        // GET: Companies/Delete/5
+        // GET: People/Delete/5
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null)
@@ -148,30 +130,31 @@ namespace CRM.Controllers
                 return NotFound();
             }
 
-            var company = await _context.Company
+            var person = await _context.People
+                .Include(p => p.Company)
                 .FirstOrDefaultAsync(m => m.Id == id);
-            if (company == null)
+            if (person == null)
             {
                 return NotFound();
             }
 
-            return View(company);
+            return View(person);
         }
 
-        // POST: Companies/Delete/5
+        // POST: People/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var company = await _context.Company.FindAsync(id);
-            _context.Company.Remove(company);
+            var person = await _context.People.FindAsync(id);
+            _context.People.Remove(person);
             await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
         }
 
-        private bool CompanyExists(int id)
+        private bool PersonExists(int id)
         {
-            return _context.Company.Any(e => e.Id == id);
+            return _context.People.Any(e => e.Id == id);
         }
     }
 }

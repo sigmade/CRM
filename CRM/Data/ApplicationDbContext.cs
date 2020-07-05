@@ -14,5 +14,6 @@ namespace CRM.Data
         {
         }
         public DbSet<CRM.Models.Company> Company { get; set; }
+        public DbSet<CRM.Models.Person> People { get; set; }
     }
 }
