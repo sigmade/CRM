@@ -37,6 +37,7 @@ namespace CRM.Controllers
 
             var person = await _context.People
                 .Include(p => p.Company)
+                .AsNoTracking()
                 .FirstOrDefaultAsync(m => m.Id == id);
             if (person == null)
             {
@@ -85,12 +86,14 @@ namespace CRM.Controllers
                 return NotFound();
             }
 
-            var person = await _context.People.FindAsync(id);
+            var person = await _context.People
+                .AsNoTracking()
+                .FirstOrDefaultAsync(m => m.Id == id);
             if (person == null)
             {
                 return NotFound();
             }
-            ViewData["CompanyId"] = new SelectList(_context.Company, "Id", "Id", person.CompanyId);
+            CompaniesDropDownList(person.Id);
             return View(person);
         }
 
@@ -101,33 +104,33 @@ namespace CRM.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, [Bind("Id,Name,Position,Phone,Email,Address,EnrollmentDate,CompanyId")] Person person)
         {
-            if (id != person.Id)
+            if (id == null)
             {
                 return NotFound();
             }
 
-            if (ModelState.IsValid)
+            var personToUpdate = await _context.People
+                .FirstOrDefaultAsync(c => c.Id == id);
+
+            if (await TryUpdateModelAsync<Person>(personToUpdate,
+                "",
+                c => c.Name, c => c.Position, c => c.Phone, c => c.Email, c => c.Address, c => c.CompanyId))
             {
                 try
                 {
-                    _context.Update(person);
                     await _context.SaveChangesAsync();
                 }
-                catch (DbUpdateConcurrencyException)
+                catch (DbUpdateException /* ex */)
                 {
-                    if (!PersonExists(person.Id))
-                    {
-                        return NotFound();
-                    }
-                    else
-                    {
-                        throw;
-                    }
+                    //Log the error (uncomment ex variable name and write a log.)
+                    ModelState.AddModelError("", "Unable to save changes. " +
+                        "Try again, and if the problem persists, " +
+                        "see your system administrator.");
                 }
                 return RedirectToAction(nameof(Index));
             }
-            ViewData["CompanyId"] = new SelectList(_context.Company, "Id", "Id", person.CompanyId);
-            return View(person);
+            CompaniesDropDownList(personToUpdate.Id);
+            return View(personToUpdate);
         }
 
         // GET: People/Delete/5
@@ -140,6 +143,7 @@ namespace CRM.Controllers
 
             var person = await _context.People
                 .Include(p => p.Company)
+                .AsNoTracking()
                 .FirstOrDefaultAsync(m => m.Id == id);
             if (person == null)
             {
