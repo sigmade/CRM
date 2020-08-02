@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using CRM.Data;
 using CRM.Models;
+using System.Collections;
 
 namespace CRM.Controllers
 {
@@ -48,7 +49,7 @@ namespace CRM.Controllers
         // GET: People/Create
         public IActionResult Create()
         {
-            ViewData["CompanyId"] = new SelectList(_context.Company, "Id", "Id");
+            CompaniesDropDownList();
             return View();
         }
 
@@ -57,6 +58,7 @@ namespace CRM.Controllers
         // more details see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
+
         public async Task<IActionResult> Create([Bind("Id,Name,Position,Phone,Email,Address,EnrollmentDate,CompanyId")] Person person)
         {
             if (ModelState.IsValid)
@@ -65,10 +67,16 @@ namespace CRM.Controllers
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
-            ViewData["CompanyId"] = new SelectList(_context.Company, "Id", "Id", person.CompanyId);
+            CompaniesDropDownList(person.CompanyId);
             return View(person);
         }
-
+        private void CompaniesDropDownList(object selectedCompany = null)
+        {
+            var companiesQuery = from s in _context.Company
+                                   orderby s.Name
+                                   select s;
+            ViewBag.CompanyId = new SelectList(companiesQuery.AsNoTracking(), "Id", "Name", selectedCompany);
+        }
         // GET: People/Edit/5
         public async Task<IActionResult> Edit(int? id)
         {
